@@ -4,10 +4,10 @@
     "slug": "posts-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets//AppIcons/playstore.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/AppIcons/android/mipmap-hdpi/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,13 +17,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets//AppIcons/playstore.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourcompany.postsapp"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets//AppIcons/playstore.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "54a649e7-77f8-4924-9cbf-007b32a64d48"
+      }
     }
   }
 }
