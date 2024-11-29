@@ -5,6 +5,10 @@ import { Post } from "../types/post";
 // Creating an instance of axios with a base URL for all requests
 const api = axios.create({
   baseURL: "https://jsonplaceholder.typicode.com",
+  timeout: 5000, // Set timeout to 5 seconds
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Defining the number of items to fetch per page
