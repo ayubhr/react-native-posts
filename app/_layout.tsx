@@ -1,11 +1,9 @@
 // @ts-nocheck
 
-// Importing necessary components and hooks from various libraries
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { PostProvider } from "@/context/PostContext";
-import { HeaderRight } from "@/components/HeaderRight";
+import { HeaderRight } from "@/components/common/HeaderRight";
 
 // Creating a new instance of QueryClient for managing queries
 const queryClient = new QueryClient();
@@ -27,11 +25,7 @@ export default function RootLayout() {
             options={{
               title: "Posts",
               headerShown: true,
-              headerRight: () => (
-                <HeaderRight
-                  isDetailsPage={false}
-                />
-              ),
+              headerRight: () => <HeaderRight isDetailsPage={false} />,
             }}
           />
           <Stack.Screen
@@ -39,11 +33,7 @@ export default function RootLayout() {
             options={{
               title: "Post Details",
               headerShown: true,
-              headerRight: () => (
-                <HeaderRight
-                  isDetailsPage={true}
-                />
-              ),
+              headerRight: () => <HeaderRight isDetailsPage={true} />,
             }}
           />
         </Stack>

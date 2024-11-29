@@ -1,5 +1,11 @@
 // Importing necessary React hooks and the Post type from the project's types
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { Post } from "@/types/post";
 
 // Defining the structure of the context
@@ -31,7 +37,7 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
   const toggleFavorite = useCallback(async (postId: number) => {
     setIsTogglingFavorite(true);
     try {
-      setFavorites(prev => {
+      setFavorites((prev) => {
         const newFavorites = new Set(prev);
         if (newFavorites.has(postId)) {
           newFavorites.delete(postId);
@@ -46,34 +52,38 @@ export function PostProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Optimized function to get favorite posts
-  const getFavoritePosts = useCallback((posts: Post[]) => {
-    return posts.filter(post => favorites.has(post.id));
-  }, [favorites]);
+  const getFavoritePosts = useCallback(
+    (posts: Post[]) => {
+      return posts.filter((post) => favorites.has(post.id));
+    },
+    [favorites]
+  );
 
   // Memoized context value
-  const contextValue = useMemo(() => ({
-    selectedPost,
-    setSelectedPost,
-    favorites,
-    toggleFavorite,
-    showFavorites,
-    setShowFavorites,
-    isTogglingFavorite,
-    getFavoritePosts,
-  }), [
-    selectedPost,
-    favorites,
-    toggleFavorite,
-    showFavorites,
-    isTogglingFavorite,
-    getFavoritePosts
-  ]);
+  const contextValue = useMemo(
+    () => ({
+      selectedPost,
+      setSelectedPost,
+      favorites,
+      toggleFavorite,
+      showFavorites,
+      setShowFavorites,
+      isTogglingFavorite,
+      getFavoritePosts,
+    }),
+    [
+      selectedPost,
+      favorites,
+      toggleFavorite,
+      showFavorites,
+      isTogglingFavorite,
+      getFavoritePosts,
+    ]
+  );
 
   // Providing the context values to the children
   return (
-    <PostContext.Provider value={contextValue}>
-      {children}
-    </PostContext.Provider>
+    <PostContext.Provider value={contextValue}>{children}</PostContext.Provider>
   );
 }
 

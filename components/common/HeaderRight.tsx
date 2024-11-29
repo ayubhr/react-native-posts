@@ -7,12 +7,12 @@ interface HeaderRightProps {
 }
 
 export function HeaderRight({ isDetailsPage = false }: HeaderRightProps) {
-  const { 
-    selectedPost, 
-    favorites, 
+  const {
+    selectedPost,
+    favorites,
     toggleFavorite,
     showFavorites,
-    setShowFavorites 
+    setShowFavorites,
   } = usePost();
 
   // If it's a details page, render a different button
@@ -27,7 +27,7 @@ export function HeaderRight({ isDetailsPage = false }: HeaderRightProps) {
       >
         <MaterialIcons
           name={isFavorite ? "star" : "star-outline"}
-          size={24}
+          size={28}
           color={isFavorite ? "#FFD700" : "#666"}
         />
       </TouchableOpacity>
@@ -42,7 +42,7 @@ export function HeaderRight({ isDetailsPage = false }: HeaderRightProps) {
     >
       <MaterialIcons
         name="star"
-        size={20}
+        size={28}
         color={showFavorites ? "#FFD700" : "#666"}
       />
       <Text
@@ -83,4 +83,4 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: "#FFB100",
   },
-}); 
+});

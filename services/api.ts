@@ -1,13 +1,12 @@
-// Importing axios for making HTTP requests and the Post type from the post module
 import axios from "axios";
 import { Post } from "../types/post";
 
 // Creating an instance of axios with a base URL for all requests
 const api = axios.create({
   baseURL: "https://jsonplaceholder.typicode.com",
-  timeout: 5000, // Set timeout to 5 seconds
+  timeout: 5000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -23,6 +22,7 @@ export const getPosts = async (
 }> => {
   // Calculating the start index for the current page
   const start = (page - 1) * ITEMS_PER_PAGE;
+
   // Making a GET request to fetch posts with the calculated start index and limit
   const response = await api.get<Post[]>(
     `/posts?_start=${start}&_limit=${ITEMS_PER_PAGE}`
