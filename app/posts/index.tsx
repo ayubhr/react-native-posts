@@ -19,18 +19,22 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { getPosts } from "../../services/api";
 import { useRouter } from "expo-router";
 import { usePost } from "@/context/PostContext";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useMemo } from "react";
 import { BlurView } from "expo-blur";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useFilter } from "../_layout";
 import FailedModal from "@/components/modal/failed";
 import SuccessModal from "@/components/modal/success";
+import Skeleton from '@/components/Skeleton';
+import PostSkeleton from '@/components/PostSkeleton';
 
 export default function Posts() {
   // Get post-related functions and state from context
-  const { setSelectedPost, favorites } = usePost();
-  // Get filter state to show favorite posts
-  const { showFavorites } = useFilter();
+  const { 
+    setSelectedPost, 
+    favorites, 
+    showFavorites,
+    getFavoritePosts 
+  } = usePost();
   // Initialize router for navigation
   const router = useRouter();
   // Create animation value for fade effect
@@ -40,7 +44,7 @@ export default function Posts() {
   // State for error modal visibility
   const [isErrorModalVisible, setIsErrorModalVisible] = useState(false);
 
-  // Fetch posts with infinite scrolling functionality
+  // Optimized query configuration
   const {
     data,
     isLoading,
@@ -56,7 +60,82 @@ export default function Posts() {
       if (!lastPage.hasMore) return undefined;
       return allPages.length + 1;
     },
+    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on component mount
+    initialPageParam: 1,
   });
+
+  // Memoize flattenedPosts to prevent unnecessary recalculations
+  const flattenedPosts = useMemo(() => 
+    data?.pages.flatMap((page) => page.data) ?? [], 
+    [data?.pages]
+  );
+
+  // Memoize filteredPosts
+  const filteredPosts = useMemo(() => 
+    flattenedPosts.filter(post => 
+      post.title.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [flattenedPosts, searchQuery]
+  );
+
+  // Memoize displayedPosts
+  const displayedPosts = useMemo(() => {
+    const filtered = flattenedPosts.filter(post => 
+      post.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    if (showFavorites) {
+      return getFavoritePosts(filtered);
+    }
+    return filtered;
+  }, [showFavorites, flattenedPosts, searchQuery, getFavoritePosts]);
+
+  // Optimize renderItem with useCallback
+  const renderItem = useCallback(({ item, index }) => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300, // Reduced animation duration
+      delay: Math.min(index * 50, 1000), // Cap the maximum delay
+      useNativeDriver: true,
+    }).start();
+
+    return (
+      <Animated.View style={{ opacity: fadeAnim }}>
+        <TouchableOpacity
+          style={styles.postItem}
+          onPress={() => {
+            setSelectedPost(item);
+            router.push(`/posts/${item.id}`);
+          }}
+          activeOpacity={0.7}
+        >
+          <BlurView
+            intensity={Platform.OS === "ios" ? 50 : 100}
+            style={styles.postContent}
+          >
+            <View style={styles.starContainer}>
+              <MaterialIcons 
+                name={favorites.has(item.id) ? "star" : "star-outline"}
+                size={20} 
+                color={favorites.has(item.id) ? "#FFD700" : "#666"} 
+              />
+            </View>
+            
+            <View style={styles.postTextContent}>
+              <Text style={styles.postTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+            </View>
+            
+            <MaterialIcons name="chevron-right" size={24} color="#666" />
+          </BlurView>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }, [fadeAnim, favorites, router, setSelectedPost]);
 
   // Function to load more posts when scrolling
   const loadMore = useCallback(() => {
@@ -78,8 +157,23 @@ export default function Posts() {
   // Show loading spinner while initially loading posts
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={styles.container}>
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color="#666" />
+          <Skeleton 
+            width="80%" 
+            height={40} 
+            style={styles.searchSkeleton} 
+          />
+        </View>
+
+        <FlatList
+          data={[1, 2, 3, 4, 5, 6]} // Nombre de skeletons à afficher
+          keyExtractor={(item) => item.toString()}
+          renderItem={() => <PostSkeleton />}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
     );
   }
@@ -101,69 +195,9 @@ export default function Posts() {
     );
   }
 
-  // Flatten the pages of posts into a single array
-  const flattenedPosts = data?.pages.flatMap((page) => page.data) ?? [];
-  // Filter posts based on search query
-  const filteredPosts = flattenedPosts.filter(post => 
-    post.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  // Show either favorite posts or all posts based on filter
-  const displayedPosts = showFavorites 
-    ? filteredPosts.filter(post => favorites.has(post.id))
-    : filteredPosts;
-
-  // Render individual post items
-  const renderItem = ({ item, index }) => {
-    // Animate post item appearance with fade effect
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      delay: index * 100,
-      useNativeDriver: true,
-    }).start();
-
-    return (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <TouchableOpacity
-          style={styles.postItem}
-          onPress={() => {
-            setSelectedPost(item);
-            router.push(`/posts/${item.id}`);
-          }}
-          activeOpacity={0.7}
-        >
-          <BlurView
-            intensity={Platform.OS === "ios" ? 50 : 100}
-            style={styles.postContent}
-          >
-            {/* Star icon to show favorite status */}
-            <View style={styles.starContainer}>
-              <MaterialIcons 
-                name={favorites.has(item.id) ? "star" : "star-outline"}
-                size={20} 
-                color={favorites.has(item.id) ? "#FFD700" : "#666"} 
-              />
-            </View>
-            
-            {/* Post title */}
-            <View style={styles.postTextContent}>
-              <Text style={styles.postTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-            </View>
-            
-            {/* Right arrow icon */}
-            <MaterialIcons name="chevron-right" size={24} color="#666" />
-          </BlurView>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
-
   // Main component render
   return (
     <View style={styles.container}>
-      {/* Search bar */}
       <View style={styles.searchContainer}>
         <MaterialIcons name="search" size={20} color="#666" />
         <TextInput
@@ -173,7 +207,6 @@ export default function Posts() {
           onChangeText={setSearchQuery}
           placeholderTextColor="#666"
         />
-        {/* Clear search button */}
         {searchQuery.length > 0 && (
           <TouchableOpacity 
             onPress={() => setSearchQuery('')}
@@ -184,7 +217,6 @@ export default function Posts() {
         )}
       </View>
 
-      {/* List of posts */}
       <FlatList
         data={displayedPosts}
         keyExtractor={(item) => item.id.toString()}
@@ -201,7 +233,6 @@ export default function Posts() {
           />
         }
         showsVerticalScrollIndicator={false}
-        // Show appropriate message when no posts are found
         ListEmptyComponent={
           searchQuery.length > 0 ? (
             <View style={styles.emptySearch}>
@@ -225,7 +256,7 @@ export default function Posts() {
   );
 }
 
-// Styles for the component
+// Make sure all styles are defined
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -268,55 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#1c1c1e",
-    marginBottom: 4,
-  },
-  postExcerpt: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
-  },
-  postMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  postMetaText: {
-    fontSize: 12,
-    color: "#666",
-    marginLeft: 4,
-  },
-  error: {
-    color: "#FF3B30",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 12,
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  emptyFavorites: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyFavoritesText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 8,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -328,17 +310,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   searchInput: {
     flex: 1,
@@ -361,5 +332,25 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 8,
+  },
+  emptyFavorites: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyFavoritesText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  searchSkeleton: {
+    marginLeft: 8,
+    borderRadius: 8,
   },
 });
